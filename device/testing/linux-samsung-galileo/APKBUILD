@@ -1,0 +1,90 @@
+# Reference: <https://postmarketos.org/vendorkernel>
+# Kernel config based on: arch/arm64/configs/(CHANGEME!)
+
+pkgname=linux-samsung-galileo
+pkgver=4.9.59
+pkgrel=0
+pkgdesc="Samsung Galaxy Watch kernel fork"
+arch="aarch64"
+_carch="arm64"
+_flavor="samsung-galileo"
+url="https://kernel.org"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps pmb:cross-native"
+makedepends="
+	bash
+	bc
+	bison
+	devicepkg-dev
+	flex
+	openssl-dev
+	perl
+	linux-headers
+	gcc6
+	dtbtool-exynos
+	tizen-mkdzimage
+	busybox-static-aarch64
+"
+
+if [ "${CC:0:5}" != "gcc6-" ]; then
+	CC="gcc6-$CC"
+	HOSTCC="gcc6-gcc"
+	CROSS_COMPILE="gcc6-$CROSS_COMPILE"
+fi
+
+
+# Source
+_repository="kernel_samsung_galileo"
+_commit="ec258e12887d37362b59e3291c1d3e5363c24bff"
+_config="config-$_flavor.$arch"
+source="
+	$pkgname-$_commit.tar.gz::https://github.com/NeoAshers/$_repository/archive/$_commit.tar.gz
+	$_config
+"
+builddir="$srcdir/$_repository-$_commit"
+_outdir="out"
+
+prepare_isorec() {
+	# Use Alpine's busybox.static instead of the pre-compiled busybox shipped
+	# with the source
+	mkdir -p "$builddir"/usr/kiran_initramfs_files
+	cp -v /usr/$(arch_to_hostspec $arch)/bin/busybox.static \
+		"$builddir"/usr/kiran_initramfs_files/busybox
+
+	# always use the initramfs from the ramdisk partition (like "isorec"),
+	# so we can build it later and independently from the kernel. note that
+	# the vendor GWatch kernel does not have initramfs, so we build our own one.
+	cd "$builddir"/usr/
+	cp -v "$srcdir"/init "$builddir"/usr/kiran_initramfs_files/init
+
+	# Paths supplied to gen_initramfs_list.sh are prefixed with "source/".
+	ln -s "$builddir" "$builddir"/source
+
+	cd "$builddir"
+}
+
+
+prepare() {
+	default_prepare
+	. downstreamkernel_prepare
+}
+
+build() {
+	unset LDFLAGS
+	dtc
+	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+
+	dtbTool-exynos -s 2048 -o "$_outdir/arch/arm64/boot/dt.img" -d "$_outdir/arch/arm64/boot/dts/exynos/"
+	tizen-mkdzimage -d "$_outdir/arch/arm64/boot/dt.img" -k "$_outdir/arch/arm64/boot/zImage" -o "$_outdir/arch/arm64/boot/dzImage"
+}
+
+package() {
+	KERNEL_IMAGE_NAME="dzImage" downstreamkernel_package "$builddir" "$pkgdir" "$_carch" \
+		"$_flavor" "$_outdir"
+}
+
+sha512sums="
+1bc8e4177f5fd1b4f28ca8d2cdc281a769219b771b7b538f8f65defbeb32baecac27ebf33d8dd957aae4c0ffb2e094c1426130dd4206c81d18485f54e0217a81  linux-samsung-galileo-ec258e12887d37362b59e3291c1d3e5363c24bff.tar.gz
+6b4be2236f99c3752aeb32ef8f8033050a595f4d83964722fd90018e1c36ffabc8bc19196889606828301c3349aeda6baca45892eba85ff1329b34711b112e6e  config-samsung-galileo.aarch64
+"
