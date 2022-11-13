@@ -21,7 +21,6 @@ makedepends="
 	perl
 	linux-headers
 	gcc6
-	dtbtool-exynos
 	tizen-mkdzimage
 	busybox-static-aarch64
 "
@@ -63,20 +62,28 @@ prepare_isorec() {
 	cd "$builddir"
 }
 
+patch_tizen_mkdzimage() {
+	# Copy to local directory due to permissions
+	cp /usr/bin/tizen-mkdzimage .
+	chmod 777 tizen-mkdzimage
+	# Patch for 64-bit devices and for it to look on $_outdir
+	sed -i 's/\.\/arch\/arm\/boot/\.\/out\/arch\/arm64\/boot/' tizen-mkdzimage
+}
+
 
 prepare() {
+	patch_tizen_mkdzimage
 	default_prepare
 	. downstreamkernel_prepare
 }
 
 build() {
 	unset LDFLAGS
-	dtc
 	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" \
 		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" dtbs
 
-	dtbTool-exynos -s 2048 -o "$_outdir/arch/arm64/boot/dt.img" -d "$_outdir/arch/arm64/boot/dts/exynos/"
-	tizen-mkdzimage -d "$_outdir/arch/arm64/boot/dt.img" -k "$_outdir/arch/arm64/boot/zImage" -o "$_outdir/arch/arm64/boot/dzImage"
+	./tizen-mkdzimage -k out/arch/arm64/boot/Image -d out/arch/arm64/boot/dts/exynos/exynos9110-tizen_galileo_large_bt-r11.dtb
 }
 
 package() {
@@ -86,5 +93,5 @@ package() {
 
 sha512sums="
 1bc8e4177f5fd1b4f28ca8d2cdc281a769219b771b7b538f8f65defbeb32baecac27ebf33d8dd957aae4c0ffb2e094c1426130dd4206c81d18485f54e0217a81  linux-samsung-galileo-ec258e12887d37362b59e3291c1d3e5363c24bff.tar.gz
-6b4be2236f99c3752aeb32ef8f8033050a595f4d83964722fd90018e1c36ffabc8bc19196889606828301c3349aeda6baca45892eba85ff1329b34711b112e6e  config-samsung-galileo.aarch64
+8c66241d1fe13bffb26509582675b011594092b014687bf636efeb46a0b2ee3b78a7ba6d225ce7980796f9ec40ea6cac8833c82aa852f4e9b6c0d903bc42deb8  config-samsung-galileo.aarch64
 "
