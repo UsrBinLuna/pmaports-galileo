@@ -1,0 +1,28 @@
+# Reference: <https://postmarketos.org/devicepkg>
+pkgname=device-samsung-galileo
+pkgdesc="Samsung Galaxy Watch"
+pkgver=0.1
+pkgrel=0
+url="https://postmarketos.org"
+license="MIT"
+arch="aarch64"
+options="!check !archcheck"
+depends="
+	linux-samsung-galileo
+	mesa-dri-gallium
+	postmarketos-base
+"
+makedepends="devicepkg-dev"
+source="deviceinfo"
+
+build() {
+	devicepkg_build $startdir $pkgname
+}
+
+package() {
+	devicepkg_package $startdir $pkgname
+}
+
+sha512sums="
+501286a5ec13c2b306085353164f3090338213df4b54aa3044e0aec844efabf52ae5a16d5a12f10d887a95937cd63bbc66f0127f19568293755aba28f5fad7d5  deviceinfo
+"
