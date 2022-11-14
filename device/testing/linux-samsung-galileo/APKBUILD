@@ -39,6 +39,7 @@ _config="config-$_flavor.$arch"
 source="
 	$pkgname-$_commit.tar.gz::https://github.com/NeoAshers/$_repository/archive/$_commit.tar.gz
 	$_config
+	init
 "
 builddir="$srcdir/$_repository-$_commit"
 _outdir="out"
@@ -72,7 +73,7 @@ patch_tizen_mkdzimage() {
 
 
 prepare() {
-	patch_tizen_mkdzimage
+	patch_tizen-mkdzimage
 	default_prepare
 	. downstreamkernel_prepare
 }
@@ -83,7 +84,7 @@ build() {
 		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
 	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" dtbs
 
-	./tizen-mkdzimage -k out/arch/arm64/boot/Image -d out/arch/arm64/boot/dts/exynos/exynos9110-tizen_galileo_large_bt-r11.dtb
+	./tizen-mkdzimage -k arch/arm64/boot/Image -d arch/arm64/boot/dts/exynos/exynos9110-tizen_galileo_large_bt-r11.dtb
 }
 
 package() {
@@ -93,5 +94,5 @@ package() {
 
 sha512sums="
 1bc8e4177f5fd1b4f28ca8d2cdc281a769219b771b7b538f8f65defbeb32baecac27ebf33d8dd957aae4c0ffb2e094c1426130dd4206c81d18485f54e0217a81  linux-samsung-galileo-ec258e12887d37362b59e3291c1d3e5363c24bff.tar.gz
-8c66241d1fe13bffb26509582675b011594092b014687bf636efeb46a0b2ee3b78a7ba6d225ce7980796f9ec40ea6cac8833c82aa852f4e9b6c0d903bc42deb8  config-samsung-galileo.aarch64
+3b5581cd453841da62c2bf2f9faeef1f0da786539bb3fbe368c4c603ab442afade4608c48e05bd94463fe21b4047c717971bc3561faeaa6650c704d60994de3d  config-samsung-galileo.aarch64
 "
